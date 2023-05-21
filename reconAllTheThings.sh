@@ -2158,10 +2158,6 @@ function all(){
 	end
 }
 
-function osint(){
-	zonetransfer
-	favicon
-}
 
 function vulns(){
 	if [ "$VULNS_GENERAL" = true ]; then
@@ -2181,57 +2177,6 @@ function vulns(){
 		brokenLinks
 		test_ssl
 	fi
-}
-
-function multi_osint(){
-
-	global_start=$(date +%s)
-
-	if [ "$NOTIFICATION" = true ]; then
-		NOTIFY="notify -silent"
-	else
-	    NOTIFY=""
-	fi
-
-	#[[ -n "$domain" ]] && ipcidr_target $domain
-
-	if [ -s "$list" ]; then
-		sed -i 's/\r$//' $list
-		targets=$(cat $list)
-	else
-		notification "Target list not provided" error
-		exit
-	fi
-
-	workdir=$SCRIPTPATH/Recon/$multi
-	mkdir -p $workdir  || { echo "Failed to create directory '$workdir' in ${FUNCNAME[0]} @ line ${LINENO}"; exit 1; }
-	cd "$workdir"  || { echo "Failed to cd directory '$workdir' in ${FUNCNAME[0]} @ line ${LINENO}"; exit 1; }
-	mkdir -p .tmp .called_fn osint subdomains webs hosts vulns
-
-	NOW=$(date +"%F")
-	NOWT=$(date +"%T")
-	LOGFILE="${workdir}/.log/${NOW}_${NOWT}.txt"
-	touch .log/${NOW}_${NOWT}.txt
-	echo "Start ${NOW} ${NOWT}" > "${LOGFILE}"
-
-	for domain in $targets; do
-		dir=$workdir/targets/$domain
-		called_fn_dir=$dir/.called_fn
-		mkdir -p $dir
-		cd "$dir"  || { echo "Failed to cd directory '$dir' in ${FUNCNAME[0]} @ line ${LINENO}"; exit 1; }
-		mkdir -p .tmp .called_fn osint subdomains webs hosts vulns
-		NOW=$(date +"%F")
-		NOWT=$(date +"%T")
-		LOGFILE="${dir}/.log/${NOW}_${NOWT}.txt"
-		touch .log/${NOW}_${NOWT}.txt
-		echo "Start ${NOW} ${NOWT}" > "${LOGFILE}"
-		zonetransfer
-		favicon
-	done
-	cd "$workdir" || { echo "Failed to cd directory '$workdir' in ${FUNCNAME[0]} @ line ${LINENO}"; exit 1; }
-	dir=$workdir
-	domain=$multi
-	end
 }
 
 
@@ -2497,7 +2442,6 @@ function help(){
 	printf "   -p, --passive     Passive - Performs only passive steps \n"
 	printf "   -a, --all         All - Perform all checks and exploitations\n"
 	printf "   -w, --web         Web - Just web checks from list provided\n"
-	printf "   -n, --osint       OSINT - Just checks public intel info\n"
 	printf "   -h                Help - Show this help\n"
 	printf " \n"
 	printf " ${bblue}GENERAL OPTIONS${reset}\n"
@@ -2535,7 +2479,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 	PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
 fi
 
-PROGARGS=$(getopt -o 'd:m:l:x:i:o:f:q:c:rspanwvh::' --long 'domain:,list:,recon,subdomains,passive,all,web,osint,deep,help,vps' -n 'reconFTW' -- "$@")
+PROGARGS=$(getopt -o 'd:m:l:x:i:o:f:q:c:rspanwvh::' --long 'domain:,list:,recon,subdomains,passive,all,web,deep,help,vps' -n 'ReconAllTheThings' -- "$@")
 
 
 # Note the quotes around "$PROGARGS": they are essential!
@@ -2597,11 +2541,6 @@ while true; do
             ;;
         '-w'|'--web')
             opt_mode='w'
-            shift
-            continue
-            ;;
-        '-n'|'--osint')
-            opt_mode='n'
             shift
             continue
             ;;
@@ -2805,20 +2744,14 @@ case $opt_mode in
             ;;
         'n')
 			PRESERVE=true
-			if [ -n "$multi" ];	then
-				multi_osint
-				exit
-			fi
 			if [ -n "$list" ]; then
 				sed -i 's/\r$//' $list
 				for domain in $(cat $list); do
 					start
-					osint
 					end
 				done
 			else
 				start
-				osint
 				end
 			fi
 			;;
